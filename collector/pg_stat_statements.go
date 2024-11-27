@@ -43,37 +43,38 @@ var (
 	statSTatementsCallsTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, statStatementsSubsystem, "calls_total"),
 		"Number of times executed",
-		[]string{"user", "datname", "queryid"},
+		[]string{"user", "datname", "queryid", "query"},
 		prometheus.Labels{},
 	)
 	statStatementsSecondsTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, statStatementsSubsystem, "seconds_total"),
 		"Total time spent in the statement, in seconds",
-		[]string{"user", "datname", "queryid"},
+		[]string{"user", "datname", "queryid", "query"},
 		prometheus.Labels{},
 	)
 	statStatementsRowsTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, statStatementsSubsystem, "rows_total"),
 		"Total number of rows retrieved or affected by the statement",
-		[]string{"user", "datname", "queryid"},
+		[]string{"user", "datname", "queryid", "query"},
 		prometheus.Labels{},
 	)
 	statStatementsBlockReadSecondsTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, statStatementsSubsystem, "block_read_seconds_total"),
 		"Total time the statement spent reading blocks, in seconds",
-		[]string{"user", "datname", "queryid"},
+		[]string{"user", "datname", "queryid", "query"},
 		prometheus.Labels{},
 	)
 	statStatementsBlockWriteSecondsTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, statStatementsSubsystem, "block_write_seconds_total"),
 		"Total time the statement spent writing blocks, in seconds",
-		[]string{"user", "datname", "queryid"},
+		[]string{"user", "datname", "queryid", "query"},
 		prometheus.Labels{},
 	)
 
 	pgStatStatementsQuery = `SELECT
 		pg_get_userbyid(userid) as user,
 		pg_database.datname,
+		pg_stat_statements.query,
 		pg_stat_statements.queryid,
 		pg_stat_statements.calls as calls_total,
 		pg_stat_statements.total_time / 1000.0 as seconds_total,
@@ -95,6 +96,7 @@ var (
 	pgStatStatementsNewQuery = `SELECT
 		pg_get_userbyid(userid) as user,
 		pg_database.datname,
+		pg_stat_statements.query,
 		pg_stat_statements.queryid,
 		pg_stat_statements.calls as calls_total,
 		pg_stat_statements.total_exec_time / 1000.0 as seconds_total,
@@ -128,11 +130,11 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var user, datname, queryid sql.NullString
+		var user, datname, queryid, query sql.NullString
 		var callsTotal, rowsTotal sql.NullInt64
 		var secondsTotal, blockReadSecondsTotal, blockWriteSecondsTotal sql.NullFloat64
 
-		if err := rows.Scan(&user, &datname, &queryid, &callsTotal, &secondsTotal, &rowsTotal, &blockReadSecondsTotal, &blockWriteSecondsTotal); err != nil {
+		if err := rows.Scan(&user, &datname, &queryid, &query, &callsTotal, &secondsTotal, &rowsTotal, &blockReadSecondsTotal, &blockWriteSecondsTotal); err != nil {
 			return err
 		}
 
@@ -149,6 +151,11 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 			queryidLabel = queryid.String
 		}
 
+		queryLabel := "unknown"
+		if query.Valid {
+			queryLabel = query.String
+		}
+
 		callsTotalMetric := 0.0
 		if callsTotal.Valid {
 			callsTotalMetric = float64(callsTotal.Int64)
@@ -157,7 +164,7 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 			statSTatementsCallsTotal,
 			prometheus.CounterValue,
 			callsTotalMetric,
-			userLabel, datnameLabel, queryidLabel,
+			userLabel, datnameLabel, queryidLabel, queryLabel,
 		)
 
 		secondsTotalMetric := 0.0
@@ -168,7 +175,7 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 			statStatementsSecondsTotal,
 			prometheus.CounterValue,
 			secondsTotalMetric,
-			userLabel, datnameLabel, queryidLabel,
+			userLabel, datnameLabel, queryidLabel, queryLabel,
 		)
 
 		rowsTotalMetric := 0.0
@@ -179,7 +186,7 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 			statStatementsRowsTotal,
 			prometheus.CounterValue,
 			rowsTotalMetric,
-			userLabel, datnameLabel, queryidLabel,
+			userLabel, datnameLabel, queryidLabel, queryLabel,
 		)
 
 		blockReadSecondsTotalMetric := 0.0
@@ -190,7 +197,7 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 			statStatementsBlockReadSecondsTotal,
 			prometheus.CounterValue,
 			blockReadSecondsTotalMetric,
-			userLabel, datnameLabel, queryidLabel,
+			userLabel, datnameLabel, queryidLabel, queryLabel,
 		)
 
 		blockWriteSecondsTotalMetric := 0.0
@@ -201,7 +208,7 @@ func (PGStatStatementsCollector) Update(ctx context.Context, instance *instance,
 			statStatementsBlockWriteSecondsTotal,
 			prometheus.CounterValue,
 			blockWriteSecondsTotalMetric,
-			userLabel, datnameLabel, queryidLabel,
+			userLabel, datnameLabel, queryidLabel, queryLabel,
 		)
 	}
 	if err := rows.Err(); err != nil {

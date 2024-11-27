@@ -253,6 +253,7 @@ var builtinMetricMaps = map[string]intermediateMetricMap{
 			"application_name": {LABEL, "connection application_name", nil, nil},
 			"count":            {GAUGE, "number of connections in this state", nil, nil},
 			"max_tx_duration":  {GAUGE, "max duration in seconds any active transaction has been running", nil, nil},
+			"query":            {LABEL, "The actual running query", nil, nil},
 		},
 		true,
 		0,

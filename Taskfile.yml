@@ -1,0 +1,9 @@
+version: 3
+
+tasks:
+  build:
+    desc: "Build the exporter"
+    cmds:
+      - make promu
+      - promu crossbuild -p linux/arm64 -p linux/amd64
+      - make docker

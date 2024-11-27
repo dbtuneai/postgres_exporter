@@ -116,7 +116,8 @@ var queryOverrides = map[string][]OverrideQuery{
 				tmp2.usename,
 				tmp2.application_name,
 				COALESCE(count,0) as count,
-				COALESCE(max_tx_duration,0) as max_tx_duration
+				COALESCE(max_tx_duration,0) as max_tx_duration,
+				tmp2.query as query
 			FROM
 				(
 				  VALUES ('active'),
@@ -129,13 +130,15 @@ var queryOverrides = map[string][]OverrideQuery{
 			LEFT JOIN
 			(
 				SELECT
+			    	query,
 					datname,
 					state,
 					usename,
 					application_name,
 					count(*) AS count,
 					MAX(EXTRACT(EPOCH FROM now() - xact_start))::float AS max_tx_duration
-				FROM pg_stat_activity GROUP BY datname,state,usename,application_name) AS tmp2
+				FROM pg_stat_activity
+				GROUP BY datname,state,usename,application_name, query) AS tmp2
 				ON tmp.state = tmp2.state AND pg_database.datname = tmp2.datname
 			`,
 		},

@@ -1,0 +1,78 @@
+name: Release custom DBtune PostgreSQL exporter
+
+on:
+  workflow_dispatch:
+    inputs:
+      semver:
+        description: "Semver string for the image tag (ex. 0.0.1)"
+        required: true
+        default: "latest"
+
+
+jobs:
+  release-image:
+    name: "Build and Push to ACR"
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+
+        - uses: actions/setup-go@v5
+          with:
+            go-version: '>=1.21.0'
+
+        - name: Install Task
+          uses: arduino/setup-task@v1
+          with:
+            version: 3.x
+
+        - name: Replace semver in make file
+          run: sed -i 's/latest-image-tag/${{ github.event.inputs.semver }}/' ./Makefile.common
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4 # More information on this action can be found below in the 'AWS Credentials' section
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1
+
+        - name: Log in to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v2
+          with:
+            registry-type: 'public'
+
+        - name: Build images
+          run: task build
+
+        # Push AMD64 image
+        - name: Tag and Push AMD64 image
+          run: |
+           docker tag dbtuneai/dbtune-postgres-exporter-linux-amd64:${{ github.event.inputs.semver }} public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64
+           docker push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64
+
+        # Push ARM64 image
+        - name: Tag and Push ARM64 image
+          run: |
+             docker tag dbtuneai/dbtune-postgres-exporter-linux-arm64:${{ github.event.inputs.semver }} public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
+             docker push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
+
+        # Create and push manifest for multi-arch support
+        - name: Create and Push manifest
+          run: |
+            docker manifest create public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }} \
+              public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64 \
+              public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
+            docker manifest push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}
+
+        - name: Create GitHub Tag
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git tag ${{ github.event.inputs.semver }}
+            git push origin ${{ github.event.inputs.semver }}
