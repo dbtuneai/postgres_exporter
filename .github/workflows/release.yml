@@ -39,8 +39,8 @@ jobs:
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws-region: us-east-1
 
-        - name: Log in to Amazon ECR
-          id: login-ecr
+        - name: Log in to Amazon ECR Public
+          id: login-ecr-public
           uses: aws-actions/amazon-ecr-login@v2
           with:
             registry-type: 'public'
@@ -48,25 +48,51 @@ jobs:
         - name: Build images
           run: task build
 
-        # Push AMD64 image
-        - name: Tag and Push AMD64 image
+        # Push AMD64 image to public ECR
+        - name: Tag and Push AMD64 image to public ECR
           run: |
            docker tag dbtuneai/dbtune-postgres-exporter-linux-amd64:${{ github.event.inputs.semver }} public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64
            docker push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64
 
-        # Push ARM64 image
-        - name: Tag and Push ARM64 image
+        # Push ARM64 image to public ECR
+        - name: Tag and Push ARM64 image to public ECR
           run: |
              docker tag dbtuneai/dbtune-postgres-exporter-linux-arm64:${{ github.event.inputs.semver }} public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
              docker push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
 
-        # Create and push manifest for multi-arch support
-        - name: Create and Push manifest
+        # Create and push manifest for multi-arch support to public ECR
+        - name: Create and Push manifest to public ECR
           run: |
             docker manifest create public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }} \
               public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64 \
               public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
             docker manifest push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}
+
+        - name: Log in to Amazon ECR Private
+          id: login-ecr-private
+          uses: aws-actions/amazon-ecr-login@v2
+          with:
+            registry-type: 'private'
+
+        # Push AMD64 image to private ECR
+        - name: Tag and Push AMD64 image to private ECR
+          run: |
+           docker tag dbtuneai/dbtune-postgres-exporter-linux-amd64:${{ github.event.inputs.semver }} 988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}-amd64
+           docker push 988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}-amd64
+
+        # Push ARM64 image to private ECR
+        - name: Tag and Push ARM64 image to private ECR
+          run: |
+             docker tag dbtuneai/dbtune-postgres-exporter-linux-arm64:${{ github.event.inputs.semver }} 988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}-arm64
+             docker push 988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}-arm64
+
+        # Create and push manifest for multi-arch support to private ECR
+        - name: Create and Push manifest to private ECR
+          run: |
+            docker manifest create 988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }} \
+              988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}-amd64 \
+              988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}-arm64
+            docker manifest push 988456582933.dkr.ecr.eu-north-1.amazonaws.com/postgres_exporter:${{ github.event.inputs.semver }}
 
         - name: Create GitHub Tag
           env:
