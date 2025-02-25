@@ -37,7 +37,7 @@ jobs:
           with:
             aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: eu-north-1
+            aws-region: us-east-1
 
         - name: Log in to Amazon ECR Public
           id: login-ecr-public
@@ -67,6 +67,13 @@ jobs:
               public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-amd64 \
               public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}-arm64
             docker manifest push public.ecr.aws/dbtune/dbtuneai/postgres_exporter:${{ github.event.inputs.semver }}
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4 # More information on this action can be found below in the 'AWS Credentials' section
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: eu-north-1
 
         - name: Log in to Amazon ECR Private
           id: login-ecr-private
