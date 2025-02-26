@@ -110,8 +110,8 @@ jobs:
 
             # Delete the tag locally and remotely if it's "latest"
             if [ "${{ github.event.inputs.semver }}" = "latest" ]; then
-              git tag -d latest
-              git push --delete origin latest
+              git tag -d latest || true
+              git push --delete origin latest || true
             fi
 
             # Create and push the new tag
