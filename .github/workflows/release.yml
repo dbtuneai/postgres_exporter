@@ -107,5 +107,13 @@ jobs:
           run: |
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+            # Delete the tag locally and remotely if it's "latest"
+            if [ "${{ github.event.inputs.semver }}" = "latest" ]; then
+              git tag -d latest
+              git push --delete origin latest
+            fi
+
+            # Create and push the new tag
             git tag ${{ github.event.inputs.semver }}
             git push origin ${{ github.event.inputs.semver }}
