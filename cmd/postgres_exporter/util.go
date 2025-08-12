@@ -24,15 +24,6 @@ import (
 	"github.com/lib/pq"
 )
 
-func contains(a []string, x string) bool {
-	for _, n := range a {
-		if x == n {
-			return true
-		}
-	}
-	return false
-}
-
 // convert a string to the corresponding ColumnUsage
 func stringToColumnUsage(s string) (ColumnUsage, error) {
 	var u ColumnUsage
@@ -159,7 +150,7 @@ func dbToString(t interface{}) (string, bool) {
 		// Try and convert to string
 		return string(v), true
 	case string:
-		return v, true
+		return strings.ToValidUTF8(v, "�"), true
 	case bool:
 		if v {
 			return "true", true

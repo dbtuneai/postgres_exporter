@@ -15,6 +15,7 @@ package collector
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -37,8 +38,9 @@ const (
 	// Namespace for all metrics.
 	namespace = "pg"
 
-	defaultEnabled  = true
-	defaultDisabled = false
+	collectorFlagPrefix = "collector."
+	defaultEnabled      = true
+	defaultDisabled     = false
 )
 
 var (
@@ -74,7 +76,7 @@ func registerCollector(name string, isDefaultEnabled bool, createFunc func(colle
 	}
 
 	// Create flag for this collector
-	flagName := fmt.Sprintf("collector.%s", name)
+	flagName := collectorFlagPrefix + name
 	flagHelp := fmt.Sprintf("Enable the %s collector (default: %s).", name, helpDefaultState)
 	defaultValue := fmt.Sprintf("%v", isDefaultEnabled)
 
@@ -171,11 +173,11 @@ func (p PostgresCollector) Collect(ch chan<- prometheus.Metric) {
 
 	// Set up the database connection for the collector.
 	err := inst.setup()
+	defer inst.Close()
 	if err != nil {
 		p.logger.Error("Error opening connection to database", "err", err)
 		return
 	}
-	defer inst.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(p.Collectors))
@@ -186,6 +188,10 @@ func (p PostgresCollector) Collect(ch chan<- prometheus.Metric) {
 		}(name, c)
 	}
 	wg.Wait()
+}
+
+func (p *PostgresCollector) Close() error {
+	return p.instance.Close()
 }
 
 func execute(ctx context.Context, name string, c Collector, instance *instance, ch chan<- prometheus.Metric, logger *slog.Logger) {
@@ -226,4 +232,12 @@ var ErrNoData = errors.New("collector returned no data")
 
 func IsNoDataError(err error) bool {
 	return err == ErrNoData
+}
+
+func Int32(m sql.NullInt32) float64 {
+	mM := 0.0
+	if m.Valid {
+		mM = float64(m.Int32)
+	}
+	return mM
 }
