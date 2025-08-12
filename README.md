@@ -5,6 +5,30 @@
 
 # PostgreSQL Server Exporter
 
+This is a fork of the official community postgres exporter from prometheus community.
+
+Here are the differences between the fork and this repository:
+
+* `pg_stat_statements` metrics are always tagged with the query statement, as such,
+  the options below does not apply to this fork:
+
+  * `[no-]collector.stat_statements.include_query`
+  Enable selecting statement query together with queryId. (default: disabled)
+
+  * `--collector.stat_statements.query_length`
+    Maximum length of the statement text. Default is 120.
+
+* `pg_class` metrics are added to the supported metrics. This can be enabled
+  using the `--collector.class` flag.
+
+* The unit tests reflects the changes above. Thus the test execution tests for
+  dbtune behavior, not the source behavior.
+
+
+Below is the original README from the source repository:
+
+---
+
 Prometheus exporter for PostgreSQL server metrics.
 
 CI Tested PostgreSQL versions: `11`, `12`, `13`, `14`, `15`, `16`, `17`.
