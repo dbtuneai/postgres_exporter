@@ -251,6 +251,9 @@ var builtinMetricMaps = map[string]intermediateMetricMap{
 			"state":            {LABEL, "connection state", nil, semver.MustParseRange(">=9.2.0")},
 			"usename":          {LABEL, "connection usename", nil, nil},
 			"application_name": {LABEL, "connection application_name", nil, nil},
+			"backend_type":     {LABEL, "connection backend_type", nil, nil},
+			"wait_event_type":  {LABEL, "connection wait_event_type", nil, nil},
+			"wait_event":       {LABEL, "connection wait_event", nil, nil},
 			"count":            {GAUGE, "number of connections in this state", nil, nil},
 			"max_tx_duration":  {GAUGE, "max duration in seconds any active transaction has been running", nil, nil},
 			"query":            {LABEL, "The actual running query", nil, nil},
@@ -679,7 +682,7 @@ func (e *Exporter) scrape(ch chan<- prometheus.Metric) {
 		if err := e.scrapeDSN(ch, dsn); err != nil {
 			errorsCount++
 
-			logger.Error("error scraping dsn", "err", err, "dsn", dsn)
+			logger.Error("error scraping dsn", "err", err, "dsn", loggableDSN(dsn))
 
 			if _, ok := err.(*ErrorConnectToServer); ok {
 				connectionErrorsCount++
