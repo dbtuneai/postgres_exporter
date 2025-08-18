@@ -124,8 +124,9 @@ func (c PGClassCollector) Update(ctx context.Context, instance *instance, ch cha
 	defer rows.Close()
 	for rows.Next() {
 		var datname, schemaname, relname sql.NullString
-		var relfrozenxid, relfrozenxidAge, relminmxid, relminmxidAge sql.NullInt32
-		var relpages, reltuples, relnatts, relallvisible sql.NullInt16
+		var relfrozenxid, relfrozenxidAge, relminmxid, relminmxidAge, relpages, relallvisible sql.NullInt32
+		var reltuples sql.NullFloat64
+		var relnatts sql.NullInt16
 
 		if err := rows.Scan(&datname, &schemaname, &relname, &relfrozenxid, &relfrozenxidAge, &relminmxid, &relminmxidAge, &relpages, &reltuples, &relnatts, &relallvisible); err != nil {
 			return err
@@ -190,7 +191,7 @@ func (c PGClassCollector) Update(ctx context.Context, instance *instance, ch cha
 
 		relpagesMetric := 0.0
 		if relpages.Valid {
-			relpagesMetric = float64(relpages.Int16)
+			relpagesMetric = float64(relpages.Int32)
 		}
 		ch <- prometheus.MustNewConstMetric(
 			classRelPages,
@@ -201,7 +202,7 @@ func (c PGClassCollector) Update(ctx context.Context, instance *instance, ch cha
 
 		reltuplesMetric := 0.0
 		if reltuples.Valid {
-			reltuplesMetric = float64(reltuples.Int16)
+			reltuplesMetric = float64(reltuples.Float64)
 		}
 		ch <- prometheus.MustNewConstMetric(
 			classRelTuples,
@@ -223,7 +224,7 @@ func (c PGClassCollector) Update(ctx context.Context, instance *instance, ch cha
 
 		relallvisibleMetric := 0.0
 		if relallvisible.Valid {
-			relallvisibleMetric = float64(relallvisible.Int16)
+			relallvisibleMetric = float64(relallvisible.Int32)
 		}
 		ch <- prometheus.MustNewConstMetric(
 			classRelAllVisible,
