@@ -38,13 +38,14 @@ var (
 	statActivityAutovacuumAgeInSeconds = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, statActivityAutovacuumSubsystem, "timestamp_seconds"),
 		"Start timestamp of the vacuum process in seconds",
-		[]string{"relname"},
+		[]string{"datname", "relname"},
 		prometheus.Labels{},
 	)
 
 	statActivityAutovacuumQuery = `
     SELECT
-		SPLIT_PART(query, '.', 2) AS relname,
+		datname,
+		SPLIT_PART(query, ' ', -1) AS relname,
 		EXTRACT(EPOCH FROM xact_start) AS timestamp_seconds
     FROM
     	pg_catalog.pg_stat_activity
@@ -64,17 +65,17 @@ func (PGStatActivityAutovacuumCollector) Update(ctx context.Context, instance *i
 	defer rows.Close()
 
 	for rows.Next() {
-		var relname string
+		var datname, relname string
 		var ageInSeconds float64
 
-		if err := rows.Scan(&relname, &ageInSeconds); err != nil {
+		if err := rows.Scan(&datname, &relname, &ageInSeconds); err != nil {
 			return err
 		}
 
 		ch <- prometheus.MustNewConstMetric(
 			statActivityAutovacuumAgeInSeconds,
 			prometheus.GaugeValue,
-			ageInSeconds, relname,
+			ageInSeconds, datname, relname,
 		)
 	}
 	if err := rows.Err(); err != nil {

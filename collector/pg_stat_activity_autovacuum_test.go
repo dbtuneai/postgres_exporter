@@ -30,11 +30,12 @@ func TestPGStatActivityAutovacuumCollector(t *testing.T) {
 	defer db.Close()
 	inst := &instance{db: db}
 	columns := []string{
+		"datname",
 		"relname",
 		"timestamp_seconds",
 	}
 	rows := sqlmock.NewRows(columns).
-		AddRow("test", 3600)
+		AddRow("dat", "test", 3600)
 
 	mock.ExpectQuery(sanitizeQuery(statActivityAutovacuumQuery)).WillReturnRows(rows)
 
@@ -48,7 +49,7 @@ func TestPGStatActivityAutovacuumCollector(t *testing.T) {
 		}
 	}()
 	expected := []MetricResult{
-		{labels: labelMap{"relname": "test"}, value: 3600, metricType: dto.MetricType_GAUGE},
+		{labels: labelMap{"datname": "dat", "relname": "test"}, value: 3600, metricType: dto.MetricType_GAUGE},
 	}
 	convey.Convey("Metrics comparison", t, func() {
 		for _, expect := range expected {
