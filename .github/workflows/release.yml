@@ -13,6 +13,8 @@ jobs:
   release-image:
     name: "Build and Push to ACR"
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
         - name: Checkout repository
           uses: actions/checkout@v4
