@@ -98,7 +98,7 @@ const (
 		cls.relfrozenxid,
 		age(cls.relfrozenxid) AS relfrozenxid_age,
 		cls.relminmxid,
-		age(cls.relminmxid) AS relminmxid_age,
+		mxid_age(cls.relminmxid) AS relminmxid_age,
 		cls.relpages,
 		cls.reltuples,
 		cls.relnatts,
